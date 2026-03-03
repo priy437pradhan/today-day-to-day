@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
-const socket = io("https://todo-day-to-day.onrender.com", {
-  transports: ["websocket"],
-});
-
 const PASSCODE = "4321";
 
 const tabs = [
@@ -19,7 +15,6 @@ const tabs = [
   "Settings",
 ];
 
-// Secret messages for tabs
 const tabSecretMap = {
   Code: "I miss you ❤️",
   Issues: "Call me",
@@ -32,7 +27,6 @@ const tabSecretMap = {
   Settings: "Love you",
 };
 
-// Secret messages for files
 const fileSecretMap = {
   "Deployment Error": "I miss you ❤️",
   "Pull Request": "Call me",
@@ -48,33 +42,59 @@ const fileSecretMap = {
 
 export default function App() {
   const [code, setCode] = useState("");
-  const [auth, setAuth] = useState(false);
+  const [auth, setAuth] = useState(
+    localStorage.getItem("secret_auth") === "true"
+  );
   const [activeTab, setActiveTab] = useState("Code");
   const [toast, setToast] = useState(null);
   const [secretReveal, setSecretReveal] = useState(false);
 
   const tapCount = useRef(0);
   const tapTimer = useRef(null);
+  const socketRef = useRef(null);
 
-  // Persist login
-  
+  /* ================= SOCKET + NOTIFICATION SETUP ================= */
+  useEffect(() => {
+  if ("Notification" in window && Notification.permission !== "granted") {
+    Notification.requestPermission();
+  }
 
- useEffect(() => {
+  socketRef.current = io("https://todo-day-to-day.onrender.com", {
+    transports: ["websocket", "polling"],
+  });
+
+  const socket = socketRef.current;
+
+  socket.on("connect", () => {
+    console.log("✅ Connected:", socket.id);
+  });
+
   socket.on("show_popup", (data) => {
-    console.log("Received:", data);
+    const message = data.message || data;
 
-    const message =
-      typeof data === "object" ? data.message : data;
+    console.log("🔥 EVENT RECEIVED:", message);
 
     setToast(message);
+
+    if (Notification.permission === "granted") {
+      new Notification("GitHub Notification", {
+        
+        icon:
+          "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+      });
+    }
 
     setTimeout(() => {
       setToast(null);
     }, 3000);
   });
 
-  return () => socket.off("show_popup");
+  return () => {
+    socket.disconnect();
+  };
 }, []);
+
+  /* ================= FUNCTIONS ================= */
 
   const login = () => {
     if (code === PASSCODE) {
@@ -85,8 +105,13 @@ export default function App() {
     }
   };
 
+  const logout = () => {
+    localStorage.removeItem("secret_auth");
+    setAuth(false);
+  };
+
   const sendSignal = (message) => {
-    socket.emit("card_click", { message });
+    socketRef.current.emit("card_click", { message });
   };
 
   const handleTripleTap = () => {
@@ -106,10 +131,7 @@ export default function App() {
     }, 600);
   };
 
-  const logout = () => {
-    localStorage.removeItem("secret_auth");
-    setAuth(false);
-  };
+  /* ================= LOGIN SCREEN ================= */
 
   if (!auth) {
     return (
@@ -135,6 +157,8 @@ export default function App() {
       </div>
     );
   }
+
+  /* ================= MAIN UI ================= */
 
   const renderTabContent = () => {
     if (activeTab === "Code") {
@@ -169,7 +193,7 @@ export default function App() {
       <div className="bg-[#24292f] text-white px-4 py-3 flex justify-between text-sm">
         <div className="font-semibold">GitHub</div>
         <div className="flex gap-4 items-center">
-          <span>OTV</span>
+          <span>Priya Pradhan</span>
           <button
             onClick={logout}
             className="text-xs opacity-70 hover:opacity-100"
@@ -225,7 +249,7 @@ export default function App() {
               GitHub Notification
             </div>
             <div className="text-sm break-words">
-            {secretReveal ? toast : "🔔 New Notification"}
+              {secretReveal ? toast : "🔔 New Notification"}
             </div>
           </div>
         </div>
