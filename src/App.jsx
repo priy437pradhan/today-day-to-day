@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 
-const socket = io("https://secret-signal-server.onrender.com");
+const socket = io("https://todo-day-to-day.onrender.com", {
+  transports: ["websocket"],
+});
 
 const PASSCODE = "4321";
 
