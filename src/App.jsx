@@ -54,16 +54,18 @@ export default function App() {
   const socketRef = useRef(null);
 
   /* ================= SOCKET + NOTIFICATION SETUP ================= */
-  useEffect(() => {
+useEffect(() => {
+  if (socketRef.current) return; // prevent double init
+
   if ("Notification" in window && Notification.permission !== "granted") {
     Notification.requestPermission();
   }
 
-  socketRef.current = io("https://todo-day-to-day.onrender.com", {
-    transports: ["websocket", "polling"],
+  const socket = io("https://todo-day-to-day.onrender.com", {
+    transports: ["websocket"],
   });
 
-  const socket = socketRef.current;
+  socketRef.current = socket;
 
   socket.on("connect", () => {
     console.log("✅ Connected:", socket.id);
@@ -78,7 +80,7 @@ export default function App() {
 
     if (Notification.permission === "granted") {
       new Notification("GitHub Notification", {
-        
+        body: message,
         icon:
           "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
       });
@@ -90,6 +92,7 @@ export default function App() {
   });
 
   return () => {
+    socket.off("show_popup");
     socket.disconnect();
   };
 }, []);
