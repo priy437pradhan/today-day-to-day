@@ -19,16 +19,31 @@ const tabs = [
   "Settings",
 ];
 
-const secretMap = {
-  Code: "Deployment Error",
-  Issues: "Pull Request",
-  "Pull requests": "Merge Conflict",
-  Actions: "Code Review",
-  Projects: "Hotfix",
-  Wiki: "Production Bug",
-  Security: "Version Update",
-  Insights: "404 Not Found",
-  Settings: "Push to Main",
+// Secret messages for tabs
+const tabSecretMap = {
+  Code: "I miss you ❤️",
+  Issues: "Call me",
+  "Pull requests": "I’m upset",
+  Actions: "Are you free?",
+  Projects: "Emergency",
+  Wiki: "Come online",
+  Security: "I’m happy",
+  Insights: "Where are you?",
+  Settings: "Love you",
+};
+
+// Secret messages for files
+const fileSecretMap = {
+  "Deployment Error": "I miss you ❤️",
+  "Pull Request": "Call me",
+  "Merge Conflict": "I’m upset",
+  "Code Review": "Are you free?",
+  "Hotfix": "Emergency",
+  "Production Bug": "Come online",
+  "Version Update": "I’m happy",
+  "404 Not Found": "Where are you?",
+  "Commit Changes": "Good night",
+  "Push to Main": "Love you",
 };
 
 export default function App() {
@@ -41,46 +56,37 @@ export default function App() {
   const tapCount = useRef(0);
   const tapTimer = useRef(null);
 
-  useEffect(() => {
-    socket.on("show_popup", (data) => {
-      const message =
-        typeof data === "object" ? data.message : data;
+  // Persist login
+  
 
-      setToast(message);
-      setTimeout(() => setToast(null), 10000);
-    });
-
-    return () => socket.off("show_popup");
-  }, []);
-  useEffect(() => {
-  if ("Notification" in window) {
-    Notification.requestPermission();
-  }
-
+ useEffect(() => {
   socket.on("show_popup", (data) => {
+    console.log("Received:", data);
+
     const message =
       typeof data === "object" ? data.message : data;
 
-    if (Notification.permission === "granted") {
-      new Notification("GitHub Alert", {
-        body: message,
-      });
-    }
-
     setToast(message);
-    setTimeout(() => setToast(null), 10000);
+
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
   });
 
   return () => socket.off("show_popup");
 }, []);
 
   const login = () => {
-    if (code === PASSCODE) setAuth(true);
-    else alert("Wrong passcode");
+    if (code === PASSCODE) {
+      setAuth(true);
+      localStorage.setItem("secret_auth", "true");
+    } else {
+      alert("Wrong passcode");
+    }
   };
 
-  const sendSignal = (msg) => {
-    socket.emit("card_click", { message: msg });
+  const sendSignal = (message) => {
+    socket.emit("card_click", { message });
   };
 
   const handleTripleTap = () => {
@@ -98,6 +104,11 @@ export default function App() {
     tapTimer.current = setTimeout(() => {
       tapCount.current = 0;
     }, 600);
+  };
+
+  const logout = () => {
+    localStorage.removeItem("secret_auth");
+    setAuth(false);
   };
 
   if (!auth) {
@@ -126,100 +137,29 @@ export default function App() {
   }
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "Code":
-        return (
-          <div className="bg-white border rounded-md">
-            {[".gitignore", "package.json", "server.js"].map(
-              (file, i) => (
-                <div
-                  key={i}
-                  className="px-4 py-3 border-b hover:bg-gray-100 cursor-pointer"
-                >
-                  {file}
-                </div>
-              )
-            )}
-          </div>
-        );
-
-      case "Issues":
-        return (
-          <div className="bg-white border rounded-md p-4">
-            <div className="border-b pb-2 mb-2 font-medium">
-              #12 Fix authentication bug
+    if (activeTab === "Code") {
+      return (
+        <div className="bg-white border rounded-md">
+          {Object.keys(fileSecretMap).map((file, i) => (
+            <div
+              key={i}
+              onClick={() =>
+                sendSignal(fileSecretMap[file])
+              }
+              className="px-4 py-3 border-b hover:bg-gray-100 cursor-pointer"
+            >
+              {file}
             </div>
-            <div className="text-sm text-gray-500">
-              Opened 2 days ago
-            </div>
-          </div>
-        );
-
-      case "Pull requests":
-        return (
-          <div className="bg-white border rounded-md p-4">
-            <div className="font-medium">
-              #45 Improve UI responsiveness
-            </div>
-            <div className="text-sm text-gray-500">
-              3 commits
-            </div>
-          </div>
-        );
-
-      case "Actions":
-        return (
-          <div className="bg-white border rounded-md p-6 text-center text-gray-500">
-            Workflow runs will appear here.
-          </div>
-        );
-
-      case "Projects":
-        return (
-          <div className="bg-white border rounded-md p-6 text-center">
-            Project board coming soon.
-          </div>
-        );
-
-      case "Wiki":
-        return (
-          <div className="bg-white border rounded-md p-6">
-            <div className="font-medium">
-              Getting Started Guide
-            </div>
-          </div>
-        );
-
-      case "Security":
-        return (
-          <div className="bg-white border rounded-md p-6 text-red-500">
-            No vulnerabilities found.
-          </div>
-        );
-
-      case "Insights":
-        return (
-          <div className="bg-white border rounded-md p-6 text-center">
-            📊 Traffic graph placeholder
-          </div>
-        );
-
-      case "Settings":
-        return (
-          <div className="bg-white border rounded-md p-6">
-            <label className="block text-sm mb-2">
-              Repository name
-            </label>
-            <input
-              className="border p-2 w-full rounded-md"
-              defaultValue="todo-day-to-day"
-            />
-          </div>
-        );
-
-      default:
-        return null;
+          ))}
+        </div>
+      );
     }
+
+    return (
+      <div className="bg-white border rounded-md p-6 text-gray-500 text-center">
+        GitHub content placeholder
+      </div>
+    );
   };
 
   return (
@@ -228,11 +168,20 @@ export default function App() {
       {/* Top Bar */}
       <div className="bg-[#24292f] text-white px-4 py-3 flex justify-between text-sm">
         <div className="font-semibold">GitHub</div>
-        <div>Priya Pradhan</div>
+        <div className="flex gap-4 items-center">
+          <span>OTV</span>
+          <button
+            onClick={logout}
+            className="text-xs opacity-70 hover:opacity-100"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 mt-6">
 
+        {/* Repo Header */}
         <div className="mb-4">
           <h1 className="text-xl md:text-2xl font-semibold">
             priya437pradhan / todo-day-to-day
@@ -240,14 +189,14 @@ export default function App() {
           <span className="text-sm text-gray-500">Public</span>
         </div>
 
-        {/* Scrollable Tabs for Mobile */}
-        <div className="border-b flex gap-6 text-sm overflow-x-auto no-scrollbar">
+        {/* Tabs */}
+        <div className="border-b flex gap-6 text-sm overflow-x-auto">
           {tabs.map((tab) => (
             <div
               key={tab}
               onClick={() => {
                 setActiveTab(tab);
-                sendSignal(secretMap[tab]);
+                sendSignal(tabSecretMap[tab]);
               }}
               className={`pb-3 whitespace-nowrap cursor-pointer ${
                 activeTab === tab
@@ -263,7 +212,6 @@ export default function App() {
         <div className="mt-6">
           {renderTabContent()}
         </div>
-
       </div>
 
       {/* Toast */}
@@ -277,7 +225,7 @@ export default function App() {
               GitHub Notification
             </div>
             <div className="text-sm break-words">
-              {secretReveal ? "💌 I Miss You" : toast}
+            {secretReveal ? toast : "🔔 New Notification"}
             </div>
           </div>
         </div>
