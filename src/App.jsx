@@ -37,8 +37,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("Code");
   const [toast, setToast] = useState(null);
   const [secretReveal, setSecretReveal] = useState(false);
-  const [showCommitInput, setShowCommitInput] = useState(false);
-  const [commitMessage, setCommitMessage] = useState("");
 
   const tapCount = useRef(0);
   const tapTimer = useRef(null);
@@ -49,12 +47,32 @@ export default function App() {
         typeof data === "object" ? data.message : data;
 
       setToast(message);
-
-      setTimeout(() => setToast(null), 3000);
+      setTimeout(() => setToast(null), 10000);
     });
 
     return () => socket.off("show_popup");
   }, []);
+  useEffect(() => {
+  if ("Notification" in window) {
+    Notification.requestPermission();
+  }
+
+  socket.on("show_popup", (data) => {
+    const message =
+      typeof data === "object" ? data.message : data;
+
+    if (Notification.permission === "granted") {
+      new Notification("GitHub Alert", {
+        body: message,
+      });
+    }
+
+    setToast(message);
+    setTimeout(() => setToast(null), 10000);
+  });
+
+  return () => socket.off("show_popup");
+}, []);
 
   const login = () => {
     if (code === PASSCODE) setAuth(true);
@@ -84,10 +102,10 @@ export default function App() {
 
   if (!auth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f6f8fa]">
-        <div className="bg-white p-8 border rounded-md shadow-md w-80">
+      <div className="min-h-screen flex items-center justify-center bg-[#f6f8fa] px-4">
+        <div className="bg-white p-8 border rounded-md shadow-md w-full max-w-sm">
           <h2 className="text-center font-semibold mb-6">
-            Code SAP Sign In
+            GitHub Sign In
           </h2>
           <input
             type="password"
@@ -107,27 +125,123 @@ export default function App() {
     );
   }
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "Code":
+        return (
+          <div className="bg-white border rounded-md">
+            {[".gitignore", "package.json", "server.js"].map(
+              (file, i) => (
+                <div
+                  key={i}
+                  className="px-4 py-3 border-b hover:bg-gray-100 cursor-pointer"
+                >
+                  {file}
+                </div>
+              )
+            )}
+          </div>
+        );
+
+      case "Issues":
+        return (
+          <div className="bg-white border rounded-md p-4">
+            <div className="border-b pb-2 mb-2 font-medium">
+              #12 Fix authentication bug
+            </div>
+            <div className="text-sm text-gray-500">
+              Opened 2 days ago
+            </div>
+          </div>
+        );
+
+      case "Pull requests":
+        return (
+          <div className="bg-white border rounded-md p-4">
+            <div className="font-medium">
+              #45 Improve UI responsiveness
+            </div>
+            <div className="text-sm text-gray-500">
+              3 commits
+            </div>
+          </div>
+        );
+
+      case "Actions":
+        return (
+          <div className="bg-white border rounded-md p-6 text-center text-gray-500">
+            Workflow runs will appear here.
+          </div>
+        );
+
+      case "Projects":
+        return (
+          <div className="bg-white border rounded-md p-6 text-center">
+            Project board coming soon.
+          </div>
+        );
+
+      case "Wiki":
+        return (
+          <div className="bg-white border rounded-md p-6">
+            <div className="font-medium">
+              Getting Started Guide
+            </div>
+          </div>
+        );
+
+      case "Security":
+        return (
+          <div className="bg-white border rounded-md p-6 text-red-500">
+            No vulnerabilities found.
+          </div>
+        );
+
+      case "Insights":
+        return (
+          <div className="bg-white border rounded-md p-6 text-center">
+            📊 Traffic graph placeholder
+          </div>
+        );
+
+      case "Settings":
+        return (
+          <div className="bg-white border rounded-md p-6">
+            <label className="block text-sm mb-2">
+              Repository name
+            </label>
+            <input
+              className="border p-2 w-full rounded-md"
+              defaultValue="todo-day-to-day"
+            />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f6f8fa] text-[#24292f]">
 
       {/* Top Bar */}
-      <div className="bg-[#24292f] text-white px-6 py-3 flex justify-between">
-        <div className="font-bold">CODE SAPP</div>
-        <div>OTV</div>
+      <div className="bg-[#24292f] text-white px-4 py-3 flex justify-between text-sm">
+        <div className="font-semibold">GitHub</div>
+        <div>Priya Pradhan</div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 mt-6">
 
-        {/* Repo Header */}
         <div className="mb-4">
-          <h1 className="text-2xl font-semibold">
+          <h1 className="text-xl md:text-2xl font-semibold">
             priya437pradhan / todo-day-to-day
           </h1>
           <span className="text-sm text-gray-500">Public</span>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b flex gap-6 text-sm">
+        {/* Scrollable Tabs for Mobile */}
+        <div className="border-b flex gap-6 text-sm overflow-x-auto no-scrollbar">
           {tabs.map((tab) => (
             <div
               key={tab}
@@ -135,7 +249,7 @@ export default function App() {
                 setActiveTab(tab);
                 sendSignal(secretMap[tab]);
               }}
-              className={`pb-3 cursor-pointer ${
+              className={`pb-3 whitespace-nowrap cursor-pointer ${
                 activeTab === tab
                   ? "border-b-2 border-orange-500 font-semibold"
                   : "text-gray-600 hover:text-black"
@@ -146,65 +260,26 @@ export default function App() {
           ))}
         </div>
 
-        {/* Code Tab Content */}
-        {activeTab === "Code" && (
-          <div className="mt-6">
+        <div className="mt-6">
+          {renderTabContent()}
+        </div>
 
-            {/* Fake Commit Row */}
-            <div
-              onClick={() => setShowCommitInput(true)}
-              className="border bg-white rounded-md p-4 cursor-pointer hover:bg-gray-100"
-            >
-              <div className="font-medium">
-                Priya Pradhan
-              </div>
-              <div className="text-sm text-gray-500">
-                initial backend · 1 hour ago
-              </div>
-            </div>
-
-            {/* Commit Input */}
-            {showCommitInput && (
-              <div className="mt-4 bg-white border p-4 rounded-md">
-                <textarea
-                  placeholder="Commit message..."
-                  value={commitMessage}
-                  onChange={(e) =>
-                    setCommitMessage(e.target.value)
-                  }
-                  className="w-full border p-2 rounded-md"
-                />
-                <button
-                  onClick={() => {
-                    sendSignal(
-                      commitMessage || "Commit Changes"
-                    );
-                    setCommitMessage("");
-                    setShowCommitInput(false);
-                  }}
-                  className="mt-2 bg-green-600 text-white px-4 py-2 rounded-md"
-                >
-                  Commit changes
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast && (
-        <div
-          onClick={handleTripleTap}
-          className="fixed top-6 right-6 bg-white border shadow-md px-6 py-3 rounded-md cursor-pointer"
-        >
-          {secretReveal ? (
-            <span className="text-red-500 font-semibold">
-              💌 I Miss You
-            </span>
-          ) : (
-            <>🚀 {toast}</>
-          )}
+        <div className="fixed inset-x-0 top-4 flex justify-center md:justify-end md:right-6 z-50 px-4">
+          <div
+            onClick={handleTripleTap}
+            className="w-full max-w-sm md:w-auto bg-[#24292f] text-white px-5 py-4 rounded-lg shadow-xl border border-gray-700 cursor-pointer"
+          >
+            <div className="text-sm font-semibold mb-1">
+              GitHub Notification
+            </div>
+            <div className="text-sm break-words">
+              {secretReveal ? "💌 I Miss You" : toast}
+            </div>
+          </div>
         </div>
       )}
     </div>
