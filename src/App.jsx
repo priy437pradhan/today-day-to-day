@@ -25,17 +25,24 @@ export default function App() {
   const [auth, setAuth] = useState(false);
   const [popup, setPopup] = useState(null);
 
-  useEffect(() => {
-    socket.on("show_popup", (index) => {
-      setPopup(cards[index]);
+useEffect(() => {
+  socket.on("connect", () => {
+    console.log("Connected:", socket.id);
+  });
 
-      setTimeout(() => {
-        setPopup(null);
-      }, 5000);
-    });
+  socket.on("show_popup", (index) => {
+    console.log("Popup received:", index);
+    setPopup(cards[index]);
 
-    return () => socket.off("show_popup");
-  }, []);
+    setTimeout(() => {
+      setPopup(null);
+    }, 5000);
+  });
+
+  return () => {
+    socket.off("show_popup");
+  };
+}, []);
 
   const login = () => {
     if (code === PASSCODE) {
