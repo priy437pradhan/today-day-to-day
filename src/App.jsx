@@ -193,7 +193,7 @@ export default function App() {
       <div className="bg-[#24292f] text-white px-4 py-3 flex justify-between text-sm">
         <div className="font-semibold">GitHub</div>
         <div className="flex gap-4 items-center">
-          <span>Priya Pradhan</span>
+          <span>OTV</span>
           <button
             onClick={logout}
             className="text-xs opacity-70 hover:opacity-100"
@@ -208,7 +208,7 @@ export default function App() {
         {/* Repo Header */}
         <div className="mb-4">
           <h1 className="text-xl md:text-2xl font-semibold">
-            priya437pradhan / todo-day-to-day
+            OTVSUPERAPP / todo-day-to-day
           </h1>
           <span className="text-sm text-gray-500">Public</span>
         </div>
