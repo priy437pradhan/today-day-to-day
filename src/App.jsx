@@ -15,31 +15,6 @@ const tabs = [
   "Settings",
 ];
 
-const tabSecretMap = {
-  Code: "I miss you ❤️",
-  Issues: "Call me",
-  "Pull requests": "I’m upset",
-  Actions: "Are you free?",
-  Projects: "Emergency",
-  Wiki: "Come online",
-  Security: "I’m happy",
-  Insights: "Where are you?",
-  Settings: "Love you",
-};
-
-const fileSecretMap = {
-  "Deployment Error": "I miss you ❤️",
-  "Pull Request": "Call me",
-  "Merge Conflict": "I’m upset",
-  "Code Review": "Are you free?",
-  "Hotfix": "Emergency",
-  "Production Bug": "Come online",
-  "Version Update": "I’m happy",
-  "404 Not Found": "Where are you?",
-  "Commit Changes": "Good night",
-  "Push to Main": "Love you",
-};
-
 export default function App() {
   const [code, setCode] = useState("");
   const [auth, setAuth] = useState(
@@ -48,54 +23,59 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("Code");
   const [toast, setToast] = useState(null);
   const [secretReveal, setSecretReveal] = useState(false);
+  const [customMsg, setCustomMsg] = useState("");
 
   const tapCount = useRef(0);
   const tapTimer = useRef(null);
   const socketRef = useRef(null);
 
-  /* ================= SOCKET + NOTIFICATION SETUP ================= */
-useEffect(() => {
-  if (socketRef.current) return; // prevent double init
+  /* ================= SOCKET + NOTIFICATION ================= */
+  useEffect(() => {
+    if (socketRef.current) return;
 
-  if ("Notification" in window && Notification.permission !== "granted") {
-    Notification.requestPermission();
-  }
-
-  const socket = io("https://todo-day-to-day.onrender.com", {
-    transports: ["websocket"],
-  });
-
-  socketRef.current = socket;
-
-  socket.on("connect", () => {
-    console.log("✅ Connected:", socket.id);
-  });
-
-  socket.on("show_popup", (data) => {
-    const message = data.message || data;
-
-    console.log("🔥 EVENT RECEIVED:", message);
-
-    setToast(message);
-
-    if (Notification.permission === "granted") {
-      new Notification("GitHub Notification", {
-      
-        icon:
-          "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
-      });
+    // Register Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js");
     }
 
-    setTimeout(() => {
-      setToast(null);
-    }, 3000);
-  });
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
 
-  return () => {
-    socket.off("show_popup");
-    socket.disconnect();
-  };
-}, []);
+    const socket = io("https://todo-day-to-day.onrender.com", {
+      transports: ["websocket"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("show_popup", (data) => {
+      const message = data.message || data;
+
+      setToast(message);
+
+      // MOBILE + DESKTOP SAFE NOTIFICATION
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          if (reg) {
+            reg.showNotification("GitHub Notification", {
+              
+              icon:
+                "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+            });
+          }
+        });
+      }
+
+      setTimeout(() => {
+        setToast(null);
+      }, 3000);
+    });
+
+    return () => {
+      socket.off("show_popup");
+      socket.disconnect();
+    };
+  }, []);
 
   /* ================= FUNCTIONS ================= */
 
@@ -134,15 +114,11 @@ useEffect(() => {
     }, 600);
   };
 
-  /* ================= LOGIN SCREEN ================= */
-
   if (!auth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f6f8fa] px-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#f6f8fa]">
         <div className="bg-white p-8 border rounded-md shadow-md w-full max-w-sm">
-          <h2 className="text-center font-semibold mb-6">
-            GitHub Sign In
-          </h2>
+          <h2 className="text-center font-semibold mb-6">GitHub Sign In</h2>
           <input
             type="password"
             placeholder="Password"
@@ -161,74 +137,36 @@ useEffect(() => {
     );
   }
 
-  /* ================= MAIN UI ================= */
-
-  const renderTabContent = () => {
-    if (activeTab === "Code") {
-      return (
-        <div className="bg-white border rounded-md">
-          {Object.keys(fileSecretMap).map((file, i) => (
-            <div
-              key={i}
-              onClick={() =>
-                sendSignal(fileSecretMap[file])
-              }
-              className="px-4 py-3 border-b hover:bg-gray-100 cursor-pointer"
-            >
-              {file}
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-white border rounded-md p-6 text-gray-500 text-center">
-        GitHub content placeholder
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-[#f6f8fa] text-[#24292f]">
-
-      {/* Top Bar */}
-      <div className="bg-[#24292f] text-white px-4 py-3 flex justify-between text-sm">
-        <div className="font-semibold">GitHub</div>
-        <div className="flex gap-4 items-center">
-          <span>OTV</span>
-          <button
-            onClick={logout}
-            className="text-xs opacity-70 hover:opacity-100"
-          >
-            Logout
-          </button>
-        </div>
+      {/* Header */}
+      <div className="bg-[#24292f] text-white px-4 py-3 flex justify-between">
+        <div>GitHub</div>
+        <button onClick={logout}>Logout</button>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 mt-6">
+        {/* Fake Repo Header */}
+        <h1 className="text-2xl font-semibold">
+          OTVSUPERAPP / todo-day-to-day
+        </h1>
 
-        {/* Repo Header */}
-        <div className="mb-4">
-          <h1 className="text-xl md:text-2xl font-semibold">
-            OTVSUPERAPP / todo-day-to-day
-          </h1>
-          <span className="text-sm text-gray-500">Public</span>
+        <div className="text-sm text-gray-500 mt-2">
+          Latest commit: <span className="text-blue-600">
+            fix: updated deployment script
+          </span> · 2 minutes ago
         </div>
 
         {/* Tabs */}
-        <div className="border-b flex gap-6 text-sm overflow-x-auto">
+        <div className="border-b flex gap-6 mt-6 text-sm">
           {tabs.map((tab) => (
             <div
               key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                sendSignal(tabSecretMap[tab]);
-              }}
-              className={`pb-3 whitespace-nowrap cursor-pointer ${
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 cursor-pointer ${
                 activeTab === tab
                   ? "border-b-2 border-orange-500 font-semibold"
-                  : "text-gray-600 hover:text-black"
+                  : "text-gray-600"
               }`}
             >
               {tab}
@@ -236,24 +174,50 @@ useEffect(() => {
           ))}
         </div>
 
-        <div className="mt-6">
-          {renderTabContent()}
+        {/* Fake Code */}
+        {activeTab === "Code" && (
+          <div className="bg-gray-900 text-green-400 p-4 mt-6 text-sm rounded">
+{`import React from "react";
+
+function App() {
+  return <h1>Todo App</h1>;
+}
+
+export default App;`}
+          </div>
+        )}
+
+        {/* Custom Commit Button */}
+        <div className="mt-6 bg-white p-4 border rounded">
+          <input
+            type="text"
+            placeholder="Enter secret message"
+            value={customMsg}
+            onChange={(e) => setCustomMsg(e.target.value)}
+            className="border px-3 py-2 w-full mb-2"
+          />
+          <button
+            onClick={() => {
+              if (customMsg.trim()) {
+                sendSignal(customMsg);
+                setCustomMsg("");
+              }
+            }}
+            className="bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Commit Custom Message
+          </button>
         </div>
       </div>
 
       {/* Toast */}
       {toast && (
-        <div className="fixed inset-x-0 top-4 flex justify-center md:justify-end md:right-6 z-50 px-4">
+        <div className="fixed inset-x-0 top-4 flex justify-center">
           <div
             onClick={handleTripleTap}
-            className="w-full max-w-sm md:w-auto bg-[#24292f] text-white px-5 py-4 rounded-lg shadow-xl border border-gray-700 cursor-pointer"
+            className="bg-[#24292f] text-white px-5 py-4 rounded-lg cursor-pointer"
           >
-            <div className="text-sm font-semibold mb-1">
-              GitHub Notification
-            </div>
-            <div className="text-sm break-words">
-              {secretReveal ? toast : "🔔 New Notification"}
-            </div>
+            {secretReveal ? toast : "🔔 New Notification"}
           </div>
         </div>
       )}
