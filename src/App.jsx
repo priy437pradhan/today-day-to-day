@@ -81,14 +81,16 @@ export default function App() {
 
 useEffect(() => {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js")
-      .then(async (registration) => {
+    navigator.serviceWorker.register("/sw.js").then(async (registration) => {
 
-        const permission = await Notification.requestPermission();
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return;
 
-        if (permission !== "granted") return;
+      // check existing subscription
+      let subscription = await registration.pushManager.getSubscription();
 
-        const subscription = await registration.pushManager.subscribe({
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey:
             "BDXvOEj-7oFPnFaim9w7_sIESpsuZMhrf02nXqwyd-_hODLZvreLlEfMMLWt1-0h4wa9JCEpNNYoANVXltvOS3o"
@@ -103,9 +105,9 @@ useEffect(() => {
         });
 
         console.log("Push subscription saved");
+      }
 
-      })
-      .catch(console.error);
+    });
   }
 }, []);
 
