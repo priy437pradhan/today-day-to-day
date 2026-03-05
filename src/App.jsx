@@ -79,18 +79,35 @@ export default function App() {
   const socketRef = useRef(null);
 
 
-    useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then(() => {
-          console.log("✅ Service Worker registered");
-        })
-        .catch((err) => {
-          console.error("Service Worker failed:", err);
+useEffect(() => {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js")
+      .then(async (registration) => {
+
+        const permission = await Notification.requestPermission();
+
+        if (permission !== "granted") return;
+
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey:
+            "BDXvOEj-7oFPnFaim9w7_sIESpsuZMhrf02nXqwyd-_hODLZvreLlEfMMLWt1-0h4wa9JCEpNNYoANVXltvOS3o"
         });
-    }
-  }, []);
+
+        await fetch("https://todo-day-to-day.onrender.com/subscribe", {
+          method: "POST",
+          body: JSON.stringify(subscription),
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        console.log("Push subscription saved");
+
+      })
+      .catch(console.error);
+  }
+}, []);
 
   /* ================= SOCKET ================= */
 
