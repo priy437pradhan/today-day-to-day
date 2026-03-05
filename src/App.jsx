@@ -78,6 +78,20 @@ export default function App() {
   const tapTimer = useRef(null);
   const socketRef = useRef(null);
 
+
+    useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => {
+          console.log("✅ Service Worker registered");
+        })
+        .catch((err) => {
+          console.error("Service Worker failed:", err);
+        });
+    }
+  }, []);
+
   /* ================= SOCKET ================= */
 
   useEffect(() => {

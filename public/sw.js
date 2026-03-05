@@ -1,6 +1,8 @@
-self.addEventListener("notificationclick", function (event) {
-  event.notification.close();
-  event.waitUntil(
-    clients.openWindow("/")
-  );
+self.addEventListener("push", function (event) {
+  const data = event.data.json();
+
+  self.registration.showNotification(data.title, {
+   
+    icon: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+  });
 });
