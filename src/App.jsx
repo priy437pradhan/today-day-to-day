@@ -64,7 +64,24 @@ const fileSecretMap = {
   "apiService.js": "Good night",
   "authService.js": "Love you",
 };
+function urlBase64ToUint8Array(base64String) {
 
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+
+}
 export default function App() {
   const [code, setCode] = useState("");
   const [auth, setAuth] = useState(
@@ -80,35 +97,41 @@ export default function App() {
 
 
 useEffect(() => {
+
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").then(async (registration) => {
 
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") return;
+    navigator.serviceWorker.register("/sw.js")
+      .then(async (registration) => {
 
-      // check existing subscription
-      let subscription = await registration.pushManager.getSubscription();
+        const permission = await Notification.requestPermission();
 
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey:
-            "BDXvOEj-7oFPnFaim9w7_sIESpsuZMhrf02nXqwyd-_hODLZvreLlEfMMLWt1-0h4wa9JCEpNNYoANVXltvOS3o"
-        });
+        if (permission !== "granted") return;
 
-        await fetch("https://todo-day-to-day.onrender.com/subscribe", {
-          method: "POST",
-          body: JSON.stringify(subscription),
-          headers: {
-            "Content-Type": "application/json"
-          }
-        });
+        let subscription = await registration.pushManager.getSubscription();
 
-        console.log("Push subscription saved");
-      }
+        if (!subscription) {
 
-    });
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(
+              "BDXvOEj-7oFPnFaim9w7_sIESpsuZMhrf02nXqwyd-_hODLZvreLlEfMMLWt1-0h4wa9JCEpNNYoANVXltvOS3o"
+            )
+          });
+
+          await fetch("https://todo-day-to-day.onrender.com/subscribe", {
+            method: "POST",
+            body: JSON.stringify(subscription),
+            headers: {
+              "Content-Type": "application/json"
+            }
+          });
+
+        }
+
+      });
+
   }
+
 }, []);
 
   /* ================= SOCKET ================= */
@@ -136,10 +159,10 @@ useEffect(() => {
       setToast(message);
 
       if (Notification.permission === "granted") {
-        new Notification("GitHub Notification", {
-          icon:
-            "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
-        });
+       new Notification("GitHub Notification", {
+  body: message,
+  icon: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+});
       }
 
       setTimeout(() => {
