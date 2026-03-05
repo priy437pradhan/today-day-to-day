@@ -3,7 +3,7 @@ self.addEventListener("push", function (event) {
   const data = event.data.json();
 
   const options = {
-    body: data.message,
+    //body: data.message,
     icon: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
     badge: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
     data: {
