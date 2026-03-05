@@ -160,7 +160,7 @@ useEffect(() => {
 
       if (Notification.permission === "granted") {
        new Notification("GitHub Notification", {
-  body: message,
+  //body: message,
   icon: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
 });
       }
